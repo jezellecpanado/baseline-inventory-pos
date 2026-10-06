@@ -17,7 +17,7 @@
     <main class="flex min-h-screen items-center justify-center px-4 py-10 sm:px-6">
         <section class="w-full max-w-md border border-surface-line bg-white p-7 shadow-sm sm:p-10" aria-labelledby="login-title">
             <div class="mb-8 border-b border-surface-line pb-7">
-                <img class="mb-7 h-12 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1W74BxnqIpM2adg2g50ZRkxPrxhxzt4rFyPV2RZ_pcesH76RvrwIh5IG9xQBSxWKDwB7UpnVJLv98A3_H3ydgs8qw20GSqGwLHV5FzZhgGRpfXuGtEfgzVjGyivn3fcqBD6XgdbdrjVoRQGw5VAp9UYW5wNxYkxR9Ma0LsKdAZADYCWuBlS5LMvzz5GTKZmem-6WA0dhQ821GcPaIIwNn9zZNyuk-e8-Qg1BUSZhqd6RqhguR9IStTszZUO4kXfWmVqcIQRKZbooOg" alt="Baseline official logo">
+                <img class="mb-7 h-12 w-auto object-contain" src="{{ asset('images/baseline-logo.png') }}" alt="Baseline official logo">
                 <p class="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-secondary">Inventory &amp; POS</p>
                 <h1 id="login-title" class="text-2xl font-extrabold tracking-tight">Sign in to your account</h1>
                 <p class="mt-2 text-sm text-secondary">Use the username and password provided by your Admin.</p>

@@ -24,7 +24,7 @@
     <div class="mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-2 px-gutter sm:gap-space-lg sm:px-gutter-tablet lg:px-gutter-desktop">
         <div class="flex min-w-0 flex-1 items-center gap-2 sm:gap-space-lg lg:gap-space-2xl">
             <a class="flex shrink-0 items-center" href="{{ route('dashboard') }}" aria-label="Baseline dashboard">
-                <img alt="Baseline Logo" class="h-10 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1W74BxnqIpM2adg2g50ZRkxPrxhxzt4rFyPV2RZ_pcesH76RvrwIh5IG9xQBSxWKDwB7UpnVJLv98A3_H3ydgs8qw20GSqGwLHV5FzZhgGRpfXuGtEfgzVjGyivn3fcqBD6XgdbdrjVoRQGw5VAp9UYW5wNxYkxR9Ma0LsKdAZADYCWuBlS5LMvzz5GTKZmem-6WA0dhQ821GcPaIIwNn9zZNyuk-e8-Qg1BUSZhqd6RqhguR9IStTszZUO4kXfWmVqcIQRKZbooOg">
+                <img alt="Baseline Logo" class="h-10 w-auto object-contain" src="{{ asset('images/baseline-logo.png') }}">
             </a>
             <nav class="flex h-16 min-w-0 flex-1 items-center gap-space-xs overflow-x-auto md:flex-none" aria-label="Main navigation">
                 <a class="whitespace-nowrap border-b-2 px-space-md py-space-sm font-label-md text-label-md uppercase tracking-wider transition-colors {{ request()->routeIs('dashboard') ? 'border-primary-container bg-inverse-surface text-inverse-on-surface' : 'border-transparent text-secondary hover:bg-surface-container hover:text-on-surface' }}" href="{{ route('dashboard') }}" @if(request()->routeIs('dashboard')) aria-current="page" @endif>Dashboard</a>
