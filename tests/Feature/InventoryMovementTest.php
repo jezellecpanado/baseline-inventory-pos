@@ -14,6 +14,75 @@ class InventoryMovementTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_pos_cash_sale_ignores_empty_qr_confirmation_and_records_inventory_movement(): void
+    {
+        $cashier = User::query()->create([
+            'name' => 'Cashier Test',
+            'username' => 'cashier-test',
+            'password' => 'password',
+            'role' => User::ROLE_POS,
+            'active' => true,
+        ]);
+        $this->actingAs($cashier)->withSession(['login_completed' => true]);
+        $product = $this->product('Cash Sale Test', '87654321');
+        InventoryBalance::query()->where('product_id', $product->id)->update([
+            'warehouse_quantity' => 7,
+            'pos_quantity' => 4,
+        ]);
+
+        $this->post(route('pos.sale'), [
+            'submission_key' => fake()->uuid(),
+            'items' => [$product->id => 2],
+            'payment_method' => 'cash',
+            'qr_confirmed' => '',
+        ])->assertRedirect(route('pos', ['tab' => 'sell']))
+            ->assertSessionHasNoErrors();
+
+        $balance = InventoryBalance::query()->where('product_id', $product->id)->firstOrFail();
+        $this->assertSame(7, $balance->warehouse_quantity);
+        $this->assertSame(2, $balance->pos_quantity);
+
+        $transaction = InventoryTransaction::query()->where('type', 'pos_sale')->firstOrFail();
+        $this->assertSame('cash', $transaction->payment_method);
+        $this->assertSame('completed', $transaction->status);
+        $this->assertSame(998.0, (float) $transaction->total);
+        $this->assertSame(2, $transaction->lines()->firstOrFail()->quantity);
+        $this->assertDatabaseHas('inventory_histories', [
+            'inventory_transaction_id' => $transaction->id,
+            'movement_type' => 'POS Sale',
+            'product_id' => $product->id,
+            'barcode' => '87654321',
+            'location' => 'POS',
+            'quantity_change' => -2,
+            'user_id' => $cashier->id,
+        ]);
+    }
+
+    public function test_pos_qr_sale_still_requires_payment_confirmation(): void
+    {
+        $cashier = User::query()->create([
+            'name' => 'QR Cashier Test',
+            'username' => 'qr-cashier-test',
+            'password' => 'password',
+            'role' => User::ROLE_POS,
+            'active' => true,
+        ]);
+        $this->actingAs($cashier)->withSession(['login_completed' => true]);
+        $product = $this->product('QR Sale Test', '87654322');
+        InventoryBalance::query()->where('product_id', $product->id)->update(['pos_quantity' => 4]);
+
+        $this->post(route('pos.sale'), [
+            'submission_key' => fake()->uuid(),
+            'items' => [$product->id => 1],
+            'payment_method' => 'qr',
+            'qr_confirmed' => '',
+        ])->assertSessionHasErrors('qr_confirmed');
+
+        $this->assertSame(4, InventoryBalance::query()->where('product_id', $product->id)->value('pos_quantity'));
+        $this->assertSame(0, InventoryTransaction::query()->count());
+        $this->assertSame(0, InventoryHistory::query()->count());
+    }
+
     public function test_sequential_receipts_and_movements_match_the_exact_warehouse_and_pos_balances(): void
     {
         $admin = User::query()->create([

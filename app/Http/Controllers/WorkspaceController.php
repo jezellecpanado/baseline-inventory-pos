@@ -168,7 +168,7 @@ class WorkspaceController extends Controller
             'items' => ['required', 'array', 'min:1'],
             'items.*' => ['required', 'integer', 'min:1'],
             'payment_method' => ['required', 'in:cash,qr'],
-            'qr_confirmed' => ['sometimes', 'accepted'],
+            'qr_confirmed' => ['exclude_unless:payment_method,qr', 'required', 'accepted'],
         ]);
         $tx = $service->complete($request->user(), 'pos_sale', $data);
 
