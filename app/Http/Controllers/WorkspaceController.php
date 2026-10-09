@@ -106,7 +106,7 @@ class WorkspaceController extends Controller
     {
         return view('pos', [
             'user' => $request->user(),
-            'products' => Product::query()->with(['balance', 'promotion'])->where('active', true)->orderedForDisplay()->get(),
+            'products' => Product::query()->with('balance')->where('active', true)->orderedForDisplay()->get(),
             'transactions' => InventoryTransaction::query()->with('lines')->whereIn('status', ['completed', 'void'])->where(function ($query) use ($request): void {
                 $query->where('type', 'pos_sale')->orWhere(function ($query): void {
                     $query->where('type', 'exchange')->where('location', 'pos');

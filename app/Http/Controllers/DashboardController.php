@@ -7,7 +7,6 @@ use App\Models\InventoryBalance;
 use App\Models\InventoryHistory;
 use App\Models\InventoryTransaction;
 use App\Models\Product;
-use App\Models\Promotion;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -102,8 +101,7 @@ class DashboardController extends Controller
             'performance' => $performance,
             'recent' => $recent,
             'adminTab' => $request->input('tab', 'products'),
-            'products' => $user->isAdmin() ? Product::query()->with(['balance', 'promotion'])->orderedForDisplay()->get() : collect(),
-            'eventPromotionId' => Promotion::query()->where('required_quantity', 2)->where('bundle_price', 899)->orderBy('id')->value('id'),
+            'products' => $user->isAdmin() ? Product::query()->with('balance')->orderedForDisplay()->get() : collect(),
             'users' => $user->isAdmin() ? User::query()->orderBy('name')->get() : collect(),
             'transactions' => $user->isAdmin() ? InventoryTransaction::query()->with('lines')->latest('completed_at')->get() : collect(),
             'history' => $user->isAdmin() ? $historyQuery->paginate(50)->withQueryString() : collect(),

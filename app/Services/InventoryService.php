@@ -7,7 +7,6 @@ use App\Models\InventoryBalance;
 use App\Models\InventoryHistory;
 use App\Models\InventoryTransaction;
 use App\Models\Product;
-use App\Models\Promotion;
 use App\Models\TransactionLine;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -71,7 +70,8 @@ class InventoryService
     {
         $quantities = $this->normalizeItems($data['items'] ?? []);
         $products = $this->lockProducts(array_keys($quantities));
-        $promotion = null;
+        $eligibleQuantity = 0;
+        $promotionGroups = 0;
         if (in_array($type, ['pos_sale', 'offline_sale'], true) && ! $quantities) {
             throw ValidationException::withMessages(['items' => 'Add at least one item.']);
         }
@@ -79,22 +79,13 @@ class InventoryService
             throw ValidationException::withMessages(['items' => 'Add at least one item.']);
         }
         if ($type === 'pos_sale') {
-            $assignedPromotionIds = $products->pluck('promotion_id')->filter()->unique()->values();
-            $eligiblePromotions = Promotion::query()
-                ->whereIn('id', $assignedPromotionIds)
-                ->where('active', true)
-                ->where('required_quantity', 2)
-                ->where('bundle_price', 899)
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->get();
-            $eligiblePromotionIds = $eligiblePromotions->modelKeys();
-            $promotion = $eligiblePromotions->first();
-            $eligibleQuantity = $promotion
-                ? collect($quantities)->sum(fn (int $quantity, int $productId): int => in_array((int) $products->get($productId)?->promotion_id, $eligiblePromotionIds, true) ? $quantity : 0)
-                : 0;
-            if ($eligibleQuantity < 2) {
-                $promotion = null;
+            $eligibleQuantity = collect($quantities)->sum(
+                fn (int $quantity, int $productId): int => $products->get($productId)?->promotion_id !== null ? $quantity : 0,
+            );
+            $promotionGroups = intdiv($eligibleQuantity, 2);
+            if ($promotionGroups > 0) {
+                $eligibleProduct = $products->first(fn (Product $product): bool => $product->promotion_id !== null);
+                $transaction->promotion_id = $eligibleProduct?->promotion_id;
             }
         }
         if (($data['payment_method'] ?? null) === 'qr') {
@@ -117,12 +108,10 @@ class InventoryService
         $totalCents = 0;
         $promoUnitsByProduct = [];
         $bundleSharesByProduct = [];
-        if ($type === 'pos_sale' && $promotion) {
-            $eligibleQuantity = collect($quantities)->sum(fn (int $quantity, int $productId): int => in_array((int) $products->get($productId)?->promotion_id, $eligiblePromotionIds, true) ? $quantity : 0);
-            $promotionGroups = intdiv($eligibleQuantity, (int) $promotion->required_quantity);
-            $remainingPromotionUnits = $promotionGroups * (int) $promotion->required_quantity;
+        if ($type === 'pos_sale' && $promotionGroups > 0) {
+            $remainingPromotionUnits = $promotionGroups * 2;
             foreach ($quantities as $productId => $quantity) {
-                if (! in_array((int) $products->get($productId)?->promotion_id, $eligiblePromotionIds, true) || $remainingPromotionUnits < 1) {
+                if ($products->get($productId)?->promotion_id === null || $remainingPromotionUnits < 1) {
                     continue;
                 }
                 $promoUnitsByProduct[$productId] = min($quantity, $remainingPromotionUnits);
@@ -133,7 +122,7 @@ class InventoryService
                 $coveredRetailCents += $promoUnits * (int) round((float) $products->get($productId)->standard_price * 100);
             }
             $bundleTotalCents = min(
-                $promotionGroups * (int) round((float) $promotion->bundle_price * 100),
+                $promotionGroups * 89900,
                 $coveredRetailCents,
             );
             $allocatedBundleCents = 0;
@@ -163,10 +152,9 @@ class InventoryService
             };
             $unitPriceCents = (int) round($unitPrice * 100);
             $lineTotalCents = $quantity * $unitPriceCents;
-            if ($type === 'pos_sale' && $promotion && isset($promoUnitsByProduct[$productId])) {
+            if ($type === 'pos_sale' && $promotionGroups > 0 && isset($promoUnitsByProduct[$productId])) {
                 $promoUnits = $promoUnitsByProduct[$productId];
                 $lineTotalCents = ($quantity - $promoUnits) * $unitPriceCents + $bundleSharesByProduct[$productId];
-                $transaction->promotion_id = $promotion->id;
             }
             $subtotalCents += $quantity * $unitPriceCents;
             $totalCents += $lineTotalCents;
