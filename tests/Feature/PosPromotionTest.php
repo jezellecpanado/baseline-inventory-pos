@@ -50,7 +50,9 @@ class PosPromotionTest extends TestCase
             InventoryBalance::query()->where('product_id', $product->id)->update(['pos_quantity' => 100]);
         }
 
-        $this->get(route('pos'))->assertOk()->assertSee('promo_eligible');
+        $posPage = $this->get(route('pos'))->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('/promo_eligible.{0,16}true/s', $posPage);
+        $this->assertMatchesRegularExpression('/promo_eligible.{0,16}false/s', $posPage);
 
         $this->assertSale($eligibleA, $eligibleB, 1, 1, subtotal: 998, discount: 99, total: 899, key: 'promo-pair');
         $this->assertSale($eligibleA, $eligibleB, 1, 2, subtotal: 1497, discount: 99, total: 1398, key: 'promo-three');
